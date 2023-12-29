@@ -111,7 +111,6 @@ def crawl_website(
 
 if __name__ == "__main__":
     urls = [
-        "https://animal-friendly.co/",
         "https://www.don1don.com/",
         "https://news.pts.org.tw/",
     ]
