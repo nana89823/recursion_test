@@ -20,7 +20,7 @@ def get_all_links(url):
     """Get_all_links."""
     global request_count  # 使用全局变量
     request_count += 1
-    logging.info(f"Making request #{request_count} to {url}")
+    logging.info(f"Crawling: #{request_count} : {url}")
     flag = True
     fail_count = 0
     while flag:
@@ -73,8 +73,6 @@ def crawl_website(
         logging.info(f"Reached maximum duration ({max_duration} seconds). Stopping.")
         return all_links_set
 
-    logging.info(f"Crawling: {url}")
-
     # 获取当前页面的所有链接
     links = get_all_links(url)
 
@@ -113,6 +111,13 @@ if __name__ == "__main__":
     urls = [
         "https://www.don1don.com/",
         "https://news.pts.org.tw/",
+        "https://www.everydayobject.us/",
+        "https://www.ettoday.net/dalemon",
+        "https://news.pts.org.tw",
+        "https://www.dramaqueen.com.tw/",
+        "https://applianceinsight.com.tw/",
+        "https://easylife.tw/",
+        "https://e-creative.media/",
     ]
     for start_url in urls:
         filename = tldextract.extract(start_url).domain
