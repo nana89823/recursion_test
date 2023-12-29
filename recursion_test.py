@@ -7,6 +7,7 @@ import time
 import tldextract
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 # 配置 logging，设置日志级别和输出格式
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -74,12 +75,17 @@ def crawl_website(url, all_links=set(), visited_links=set(), start_time=None, ma
     # 添加当前页面到已访问的链接集合
     visited_links.add(url)
 
-    # 递归爬取每个链接
-    for link in links:
-        # 解析链接，仅爬取同一域的链接
-        parsed_url = urlparse(link)
-        if parsed_url.netloc == urlparse(url).netloc:
-            crawl_website(link, all_links, visited_links, start_time, max_duration)
+    # 创建 ThreadPoolExecutor
+    with ThreadPoolExecutor() as executor:
+        # executor.map
+        executor.map(
+            crawl_website,
+            (link for link in links if urlparse(link).netloc == urlparse(url).netloc),
+            (all_links,) * len(links),
+            (visited_links,) * len(links),
+            (start_time,) * len(links),
+            (max_duration,) * len(links)
+        )
 
 
 if __name__ == "__main__":
