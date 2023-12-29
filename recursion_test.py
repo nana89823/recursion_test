@@ -1,6 +1,7 @@
 """Recursion test."""
 import requests
-from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
+
+# from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import time
@@ -10,7 +11,9 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 配置 logging，设置日志级别和输出格式
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def get_all_links(url):
@@ -19,29 +22,33 @@ def get_all_links(url):
     request_count += 1
     logging.info(f"Making request #{request_count} to {url}")
     flag = True
+    fail_count = 0
     while flag:
         try:
             response = requests.get(url)
             flag = False
-        except ConnectionError as ce:
-            logging.error(f"ConnectionError: {ce}")
-            time.sleep(0.1)
-        except HTTPError as he:
-            logging.error(f"HTTPError: {he}")
-            time.sleep(0.1)
-        except Timeout as te:
-            logging.error(f"Timeout: {te}")
-            time.sleep(0.1)
-        except RequestException as re:
-            logging.error(f"RequestException: {re}")
-            time.sleep(0.1)
+        # except ConnectionError as ce:
+        #     logging.error(f"ConnectionError: {ce}")
+        #     time.sleep(1)
+        # except HTTPError as he:
+        #     logging.error(f"HTTPError: {he}")
+        #     time.sleep(1)
+        # except Timeout as te:
+        #     logging.error(f"Timeout: {te}")
+        #     time.sleep(1)
+        # except RequestException as re:
+        #     logging.error(f"RequestException: {re}")
+        #     time.sleep(1)
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
-            time.sleep(0.1)
-    soup = BeautifulSoup(response.text, 'lxml')
+            fail_count += 1
+            if fail_count >= 5:
+                flag = False
+            time.sleep(1)
+    soup = BeautifulSoup(response.text, "lxml")
 
     # 提取页面上的所有链接
-    links = [a.get('href') for a in soup.find_all('a', href=True)]
+    links = [a.get("href") for a in soup.find_all("a", href=True)]
 
     # 将相对链接转换为绝对链接
     links = [urljoin(url, link) for link in links]
@@ -49,7 +56,9 @@ def get_all_links(url):
     return links
 
 
-def crawl_website(url, all_links_set=set(), visited_links=set(), start_time=None, max_duration=3600):
+def crawl_website(
+    url, all_links_set=set(), visited_links=set(), start_time=None, max_duration=3600
+):
     """Crawl_website."""
     if url in visited_links:
         return
@@ -78,8 +87,18 @@ def crawl_website(url, all_links_set=set(), visited_links=set(), start_time=None
     # 创建 ThreadPoolExecutor
     with ThreadPoolExecutor() as executor:
         # 使用 executor.submit 提交任务，得到 Future 对象列表
-        futures = [executor.submit(crawl_website, link, all_links_set, visited_links, start_time, max_duration)
-                   for link in links if urlparse(link).netloc == urlparse(url).netloc]
+        futures = [
+            executor.submit(
+                crawl_website,
+                link,
+                all_links_set,
+                visited_links,
+                start_time,
+                max_duration,
+            )
+            for link in links
+            if urlparse(link).netloc == urlparse(url).netloc
+        ]
 
         # 使用 as_completed 函数等待任务完成，获取已完成的 Future 对象
         for future in as_completed(futures):
@@ -91,12 +110,16 @@ def crawl_website(url, all_links_set=set(), visited_links=set(), start_time=None
 
 
 if __name__ == "__main__":
-    urls = ["https://animal-friendly.co/", "https://www.don1don.com/", "https://news.pts.org.tw/"]
+    urls = [
+        "https://animal-friendly.co/",
+        "https://www.don1don.com/",
+        "https://news.pts.org.tw/",
+    ]
     for start_url in urls:
         filename = tldextract.extract(start_url).domain
         # 记录请求次数的全局变量
         request_count = 0
         all_links = crawl_website(start_url)
-        with open(f'{filename}.txt', 'w') as file:
+        with open(f"{filename}.txt", "w") as file:
             urls_list = list(all_links)
             json.dump(urls_list, file)
