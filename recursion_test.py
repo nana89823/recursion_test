@@ -7,7 +7,7 @@ import time
 import tldextract
 import json
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 配置 logging，设置日志级别和输出格式
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -49,7 +49,7 @@ def get_all_links(url):
     return links
 
 
-def crawl_website(url, all_links=set(), visited_links=set(), start_time=None, max_duration=3600):
+def crawl_website(url, all_links_set=set(), visited_links=set(), start_time=None, max_duration=3600):
     """Crawl_website."""
     if url in visited_links:
         return
@@ -62,7 +62,7 @@ def crawl_website(url, all_links=set(), visited_links=set(), start_time=None, ma
     elapsed_time = current_time - start_time
     if elapsed_time > max_duration:
         logging.info(f"Reached maximum duration ({max_duration} seconds). Stopping.")
-        return all_links
+        return all_links_set
 
     logging.info(f"Crawling: {url}")
 
@@ -70,22 +70,24 @@ def crawl_website(url, all_links=set(), visited_links=set(), start_time=None, ma
     links = get_all_links(url)
 
     # 将当前页面的链接添加到总的链接集合
-    all_links.update(links)
+    all_links_set.update(links)
 
     # 添加当前页面到已访问的链接集合
     visited_links.add(url)
 
     # 创建 ThreadPoolExecutor
     with ThreadPoolExecutor() as executor:
-        # executor.map
-        executor.map(
-            crawl_website,
-            (link for link in links if urlparse(link).netloc == urlparse(url).netloc),
-            (all_links,) * len(links),
-            (visited_links,) * len(links),
-            (start_time,) * len(links),
-            (max_duration,) * len(links)
-        )
+        # 使用 executor.submit 提交任务，得到 Future 对象列表
+        futures = [executor.submit(crawl_website, link, all_links_set, visited_links, start_time, max_duration)
+                   for link in links if urlparse(link).netloc == urlparse(url).netloc]
+
+        # 使用 as_completed 函数等待任务完成，获取已完成的 Future 对象
+        for future in as_completed(futures):
+            result = future.result()
+            if result is not None:
+                all_links_set.update(result)
+
+    return all_links_set
 
 
 if __name__ == "__main__":
@@ -94,8 +96,7 @@ if __name__ == "__main__":
         filename = tldextract.extract(start_url).domain
         # 记录请求次数的全局变量
         request_count = 0
-        all_links_set = set()
-        all_links = crawl_website(start_url, all_links_set)
+        all_links = crawl_website(start_url)
         with open(f'{filename}.txt', 'w') as file:
             urls_list = list(all_links)
             json.dump(urls_list, file)
