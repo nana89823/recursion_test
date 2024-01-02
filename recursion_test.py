@@ -44,17 +44,20 @@ def get_all_links(url):
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
             fail_count += 1
-            if fail_count >= 5:
+            if fail_count >= 3:
                 flag = False
+                response = None
             time.sleep(1)
-    soup = BeautifulSoup(response.text, "lxml")
+    if response:
+        soup = BeautifulSoup(response.text, "lxml")
 
-    # 提取页面上的所有链接
-    links = [a.get("href") for a in soup.find_all("a", href=True)]
+        # 提取页面上的所有链接
+        links = [a.get("href") for a in soup.find_all("a", href=True)]
 
-    # 将相对链接转换为绝对链接
-    links = [urljoin(url, link) for link in links]
-
+        # 将相对链接转换为绝对链接
+        links = [urljoin(url, link) for link in links]
+    else:
+        return None
     return links
 
 
@@ -85,7 +88,7 @@ def crawl_website(
     visited_links.add(url)
 
     # 創建 ThreadPoolExecutor
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         # 使用 executor.submit 提交任务，得到 Future 对象列表
         futures = [
             executor.submit(
