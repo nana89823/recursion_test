@@ -85,7 +85,7 @@ def crawl_website(
     visited_links.add(url)
 
     # 創建 ThreadPoolExecutor
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         # 使用 executor.submit 提交任务，得到 Future 对象列表
         futures = [
             executor.submit(
