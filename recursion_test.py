@@ -8,7 +8,9 @@ import time
 import tldextract
 import json
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+import concurrent.futures
 
 # 配置 logging，设置日志级别和输出格式
 logging.basicConfig(
@@ -82,8 +84,8 @@ def crawl_website(
     # 添加当前页面到已访问的链接集合
     visited_links.add(url)
 
-    # 创建 ThreadPoolExecutor
-    with ThreadPoolExecutor() as executor:
+    # 創建 ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         # 使用 executor.submit 提交任务，得到 Future 对象列表
         futures = [
             executor.submit(
@@ -98,13 +100,69 @@ def crawl_website(
             if urlparse(link).netloc == urlparse(url).netloc
         ]
 
-        # 使用 as_completed 函数等待任务完成，获取已完成的 Future 对象
-        for future in as_completed(futures):
+        # 使用 concurrent.futures.wait 等待所有任务完成
+        done, not_done = concurrent.futures.wait(
+            futures, timeout=max_duration - elapsed_time
+        )
+
+        # 檢查已完成的任務
+        for future in done:
             result = future.result()
             if result is not None:
                 all_links_set.update(result)
 
     return all_links_set
+
+
+# def crawl_website(
+#     url, all_links_set=set(), visited_links=set(), start_time=None, max_duration=3600
+# ):
+#     """Crawl_website."""
+#     if url in visited_links:
+#         return
+
+#     if start_time is None:
+#         start_time = time.time()
+
+#     # 检查是否超过最大运行时间
+#     current_time = time.time()
+#     elapsed_time = current_time - start_time
+#     if elapsed_time > max_duration:
+#         logging.info(f"Reached maximum duration ({max_duration} seconds). Stopping.")
+#         return all_links_set
+
+#     # 获取当前页面的所有链接
+#     links = get_all_links(url)
+
+#     # 将当前页面的链接添加到总的链接集合
+#     all_links_set.update(links)
+
+#     # 添加当前页面到已访问的链接集合
+#     visited_links.add(url)
+
+#     # 创建 ThreadPoolExecutor
+#     with ThreadPoolExecutor() as executor:
+#         # 使用 executor.submit 提交任务，得到 Future 对象列表
+#         futures = [
+#             executor.submit(
+#                 crawl_website,
+#                 link,
+#                 all_links_set,
+#                 visited_links,
+#                 start_time,
+#                 max_duration,
+#             )
+#             for link in links
+#             if urlparse(link).netloc == urlparse(url).netloc
+#         ]
+
+#         # 使用 as_completed 函数等待任务完成，获取已完成的 Future 对象
+#         for future in as_completed(futures):
+#             result = future.result()
+#             if result is not None:
+#                 all_links_set.update(result)
+
+#     return all_links_set
 
 
 if __name__ == "__main__":
